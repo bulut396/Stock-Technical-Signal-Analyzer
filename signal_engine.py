@@ -16,10 +16,20 @@ _MIN_BARS = 30
 
 
 def _rsi_vote(latest_rsi: float) -> str:
-    """RSI rule: oversold votes BUY, overbought votes SELL, else no vote."""
-    if latest_rsi < 30:
+    """RSI rule: oversold votes BUY, overbought votes SELL, else no vote.
+
+    Uses a 40/60 band rather than the classic textbook 30/70 oversold/
+    overbought levels. This is a deliberate calibration choice, not a claim
+    that 40/60 is "the correct" RSI threshold: in practice, RSI for liquid
+    large-cap stocks spends most of its time in a fairly narrow 35-65 range
+    and rarely touches the 30/70 extremes, so a strict 30/70 rule almost
+    never votes at all. 40/60 trades some of that textbook conservatism for
+    a rule that actually fires on real, actively-traded tickers — a more
+    sensitive (and less extreme) reading than the classic definition.
+    """
+    if latest_rsi < 40:
         return "BUY"
-    if latest_rsi > 70:
+    if latest_rsi > 60:
         return "SELL"
     return "NONE"
 
@@ -34,11 +44,34 @@ def _macd_vote(histogram: pd.Series) -> str:
     return "NONE"
 
 
+_BAND_WIDTH_EPSILON = 1e-9
+
+
 def _bollinger_vote(latest_close: float, latest_lower: float, latest_upper: float) -> str:
-    """Bollinger rule: price at the lower/upper extreme of its recent range."""
-    if latest_close <= latest_lower:
+    """Bollinger rule: votes based on where price sits within its recent band.
+
+    Rather than requiring the close to touch or exceed a band edge (the
+    classic Bollinger signal), this computes ``position = (close - lower) /
+    (upper - lower)`` — a 0-to-1 reading of where price sits within its own
+    recent volatility range — and votes BUY if that position is in the
+    bottom 20% of the range, SELL if it's in the top 20%. This is a
+    deliberate sensitivity tradeoff (same spirit as the RSI 40/60 change):
+    it fires far more often than the textbook "price touches the band" rule,
+    at the cost of being a looser, less extreme confirmation than the
+    classic standard.
+
+    If the band has (near) zero width — e.g. a perfectly flat price series —
+    "position within the band" is undefined, so this votes ``"NONE"`` rather
+    than risk a division by zero or a meaningless ratio.
+    """
+    band_width = latest_upper - latest_lower
+    if band_width <= _BAND_WIDTH_EPSILON:
+        return "NONE"
+
+    position = (latest_close - latest_lower) / band_width
+    if position <= 0.2:
         return "BUY"
-    if latest_close >= latest_upper:
+    if position >= 0.8:
         return "SELL"
     return "NONE"
 
@@ -65,21 +98,29 @@ def generate_signal(ohlcv_df: pd.DataFrame) -> Dict[str, Any]:
     supplied price history (via the indicator functions in
     :mod:`indicators`), then applies three simple, named voting rules:
 
-    - **RSI rule**: RSI below 30 votes BUY ("oversold"); above 70 votes SELL
-      ("overbought"); otherwise no vote.
+    - **RSI rule**: RSI below 40 votes BUY ("oversold"); above 60 votes SELL
+      ("overbought"); otherwise no vote. This 40/60 band is a deliberate
+      sensitivity calibration, not the classic textbook 30/70 levels — see
+      :func:`_rsi_vote` for why.
     - **MACD rule**: the MACD histogram flipping from negative to positive on
       the latest bar (a bullish crossover) votes BUY; flipping from positive
       to negative votes SELL; otherwise no vote.
-    - **Bollinger rule**: the latest close at or below the lower band votes
-      BUY ("price at a lower extreme"); at or above the upper band votes
-      SELL; otherwise no vote.
+    - **Bollinger rule**: votes BUY if the close sits in the bottom 20% of
+      its position between the lower and upper band; SELL if it sits in the
+      top 20%; otherwise no vote. This 20%-zone version is a deliberate
+      sensitivity calibration, looser than the classic "price touches the
+      band" standard — see :func:`_bollinger_vote` for why.
 
     Trading volume does not cast a vote; it only qualifies the result with a
     plain-language note about conviction.
 
-    Decision: 2 or more BUY votes with 0 SELL votes gives ``"BUY"``; 2 or more
-    SELL votes with 0 BUY votes gives ``"SELL"``; any other combination
-    (mixed or weak signals) gives ``"HOLD"``.
+    Decision: whichever side has more votes wins, as long as it has at least
+    one — more BUY votes than SELL votes gives ``"BUY"``; more SELL votes
+    than BUY votes gives ``"SELL"``. A tie (including 0 votes either way)
+    gives ``"HOLD"`` — so a single rule firing with nothing opposing it is
+    now enough to produce a signal, but a genuine conflict between rules
+    (e.g. RSI says BUY while Bollinger says SELL) still correctly resolves to
+    HOLD rather than arbitrarily picking a side.
 
     Parameters
     ----------
@@ -130,9 +171,9 @@ def generate_signal(ohlcv_df: pd.DataFrame) -> Dict[str, Any]:
     buy_votes = sum(1 for v in votes.values() if v == "BUY")
     sell_votes = sum(1 for v in votes.values() if v == "SELL")
 
-    if buy_votes >= 2 and sell_votes == 0:
+    if buy_votes > sell_votes and buy_votes >= 1:
         signal = "BUY"
-    elif sell_votes >= 2 and buy_votes == 0:
+    elif sell_votes > buy_votes and sell_votes >= 1:
         signal = "SELL"
     else:
         signal = "HOLD"

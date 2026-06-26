@@ -34,7 +34,7 @@ A warning is always shown on the page reminding you this is for learning, not fo
 
 The app looks at three classic technical indicators:
 
-- **RSI** — checks whether the price has moved unusually far, unusually fast.
+- **RSI** — checks whether the price has moved unusually far, unusually fast. This app votes BUY below 40 and SELL above 60. That's a more sensitive band than the classic textbook 30/70 levels — chosen deliberately so the rule actually fires on real, actively-traded stocks, at the cost of being a less extreme reading than the textbook definition.
 - **MACD** — checks whether the price's momentum is shifting up or down.
 - **Bollinger Bands** — checks whether the price has pushed to an unusual extreme compared to its recent range.
 
