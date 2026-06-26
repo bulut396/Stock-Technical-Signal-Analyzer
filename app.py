@@ -40,23 +40,25 @@ def _render_signal(signal_result: dict) -> None:
         votes = signal_result["votes"]
         st.markdown(
             f"- **RSI rule**: {votes['rsi']} "
-            f"(RSI is {signal_result['rsi_value']:.1f}; below 30 votes BUY/"
-            "oversold, above 70 votes SELL/overbought)."
+            f"(RSI is {signal_result['rsi_value']:.1f}; below 40 votes BUY/"
+            "oversold, above 60 votes SELL/overbought)."
         )
         st.markdown(
             f"- **MACD rule**: {votes['macd']} "
-            "(votes BUY if the MACD line just crossed above its signal line, "
-            "SELL if it just crossed below)."
+            "(votes BUY if the MACD histogram just flipped from negative to "
+            "positive, SELL if it just flipped from positive to negative)."
         )
         st.markdown(
             f"- **Bollinger rule**: {votes['bollinger']} "
-            "(votes BUY if the latest close is at or below the lower band, "
-            "SELL if at or above the upper band)."
+            "(votes BUY if the latest close sits in the bottom 20% of its "
+            "position between the lower and upper band, SELL if it sits in "
+            "the top 20%)."
         )
         st.markdown(f"- **Volume note**: {signal_result['volume_note']}")
         st.markdown(
-            "A signal of BUY or SELL requires at least two rules agreeing "
-            "with no rule voting the opposite way; anything else is HOLD."
+            "Whichever side — BUY or SELL — has more votes wins, as long as "
+            "it has at least one; a tie (including no votes either way) is "
+            "HOLD."
         )
 
 
