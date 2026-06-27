@@ -40,8 +40,8 @@ def _render_signal(signal_result: dict) -> None:
         votes = signal_result["votes"]
         st.markdown(
             f"- **RSI rule**: {votes['rsi']} "
-            f"(RSI is {signal_result['rsi_value']:.1f}; below 40 votes BUY/"
-            "oversold, above 60 votes SELL/overbought)."
+            f"(RSI is {signal_result['rsi_value']:.1f}; below 45 votes BUY/"
+            "oversold, above 55 votes SELL/overbought)."
         )
         st.markdown(
             f"- **MACD rule**: {votes['macd']} "
@@ -50,9 +50,9 @@ def _render_signal(signal_result: dict) -> None:
         )
         st.markdown(
             f"- **Bollinger rule**: {votes['bollinger']} "
-            "(votes BUY if the latest close sits in the bottom 20% of its "
+            "(votes BUY if the latest close sits in the bottom 30% of its "
             "position between the lower and upper band, SELL if it sits in "
-            "the top 20%)."
+            "the top 30%)."
         )
         st.markdown(f"- **Volume note**: {signal_result['volume_note']}")
         st.markdown(

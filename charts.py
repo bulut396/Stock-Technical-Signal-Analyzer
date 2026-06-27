@@ -97,16 +97,16 @@ def plot_rsi(rsi_series: pd.Series) -> go.Figure:
     Returns
     -------
     plotly.graph_objects.Figure
-        RSI line with dashed reference lines at 40 (oversold) and 60
+        RSI line with dashed reference lines at 45 (oversold) and 55
         (overbought) — matching the signal engine's calibrated thresholds —
         shaded so the extreme zones are visually obvious.
     """
     fig = go.Figure()
 
-    fig.add_hrect(y0=60, y1=100, fillcolor="#E74C3C", opacity=0.07, line_width=0)
-    fig.add_hrect(y0=0, y1=40, fillcolor="#27AE60", opacity=0.07, line_width=0)
-    fig.add_hline(y=60, line=dict(color="#E74C3C", dash="dash", width=1))
-    fig.add_hline(y=40, line=dict(color="#27AE60", dash="dash", width=1))
+    fig.add_hrect(y0=55, y1=100, fillcolor="#E74C3C", opacity=0.07, line_width=0)
+    fig.add_hrect(y0=0, y1=45, fillcolor="#27AE60", opacity=0.07, line_width=0)
+    fig.add_hline(y=55, line=dict(color="#E74C3C", dash="dash", width=1))
+    fig.add_hline(y=45, line=dict(color="#27AE60", dash="dash", width=1))
 
     fig.add_trace(
         go.Scatter(

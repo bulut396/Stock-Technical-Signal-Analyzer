@@ -18,18 +18,16 @@ _MIN_BARS = 30
 def _rsi_vote(latest_rsi: float) -> str:
     """RSI rule: oversold votes BUY, overbought votes SELL, else no vote.
 
-    Uses a 40/60 band rather than the classic textbook 30/70 oversold/
-    overbought levels. This is a deliberate calibration choice, not a claim
-    that 40/60 is "the correct" RSI threshold: in practice, RSI for liquid
-    large-cap stocks spends most of its time in a fairly narrow 35-65 range
-    and rarely touches the 30/70 extremes, so a strict 30/70 rule almost
-    never votes at all. 40/60 trades some of that textbook conservatism for
-    a rule that actually fires on real, actively-traded tickers — a more
-    sensitive (and less extreme) reading than the classic definition.
+    Uses a 45/55 band — loosened further from an earlier 40/60 calibration
+    (itself already looser than the classic textbook 30/70 levels). This is a
+    deliberate sensitivity preference, not a claim that 45/55 is "the
+    correct" RSI threshold: it's chosen so the rule fires more often (less
+    often landing on no vote at all), at the cost of being an even less
+    extreme reading than 40/60 or the classic 30/70 definition.
     """
-    if latest_rsi < 40:
+    if latest_rsi < 45:
         return "BUY"
-    if latest_rsi > 60:
+    if latest_rsi > 55:
         return "SELL"
     return "NONE"
 
@@ -54,11 +52,11 @@ def _bollinger_vote(latest_close: float, latest_lower: float, latest_upper: floa
     classic Bollinger signal), this computes ``position = (close - lower) /
     (upper - lower)`` — a 0-to-1 reading of where price sits within its own
     recent volatility range — and votes BUY if that position is in the
-    bottom 20% of the range, SELL if it's in the top 20%. This is a
-    deliberate sensitivity tradeoff (same spirit as the RSI 40/60 change):
-    it fires far more often than the textbook "price touches the band" rule,
-    at the cost of being a looser, less extreme confirmation than the
-    classic standard.
+    bottom 30% of the range, SELL if it's in the top 30%. This zone was
+    loosened from an earlier 20%-zone calibration (same spirit as the RSI
+    45/55 change): it fires more often than both the 20%-zone version and the
+    textbook "price touches the band" rule, at the cost of being a looser,
+    less extreme confirmation than either.
 
     If the band has (near) zero width — e.g. a perfectly flat price series —
     "position within the band" is undefined, so this votes ``"NONE"`` rather
@@ -69,9 +67,9 @@ def _bollinger_vote(latest_close: float, latest_lower: float, latest_upper: floa
         return "NONE"
 
     position = (latest_close - latest_lower) / band_width
-    if position <= 0.2:
+    if position <= 0.3:
         return "BUY"
-    if position >= 0.8:
+    if position >= 0.7:
         return "SELL"
     return "NONE"
 
@@ -98,18 +96,19 @@ def generate_signal(ohlcv_df: pd.DataFrame) -> Dict[str, Any]:
     supplied price history (via the indicator functions in
     :mod:`indicators`), then applies three simple, named voting rules:
 
-    - **RSI rule**: RSI below 40 votes BUY ("oversold"); above 60 votes SELL
-      ("overbought"); otherwise no vote. This 40/60 band is a deliberate
-      sensitivity calibration, not the classic textbook 30/70 levels — see
-      :func:`_rsi_vote` for why.
+    - **RSI rule**: RSI below 45 votes BUY ("oversold"); above 55 votes SELL
+      ("overbought"); otherwise no vote. This 45/55 band is a deliberate
+      sensitivity calibration, looser than an earlier 40/60 calibration and
+      the classic textbook 30/70 levels — see :func:`_rsi_vote` for why.
     - **MACD rule**: the MACD histogram flipping from negative to positive on
       the latest bar (a bullish crossover) votes BUY; flipping from positive
       to negative votes SELL; otherwise no vote.
-    - **Bollinger rule**: votes BUY if the close sits in the bottom 20% of
+    - **Bollinger rule**: votes BUY if the close sits in the bottom 30% of
       its position between the lower and upper band; SELL if it sits in the
-      top 20%; otherwise no vote. This 20%-zone version is a deliberate
-      sensitivity calibration, looser than the classic "price touches the
-      band" standard — see :func:`_bollinger_vote` for why.
+      top 30%; otherwise no vote. This 30%-zone version is a deliberate
+      sensitivity calibration, looser than an earlier 20%-zone calibration
+      and the classic "price touches the band" standard — see
+      :func:`_bollinger_vote` for why.
 
     Trading volume does not cast a vote; it only qualifies the result with a
     plain-language note about conviction.
