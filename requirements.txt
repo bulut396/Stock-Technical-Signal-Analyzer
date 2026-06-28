@@ -3,3 +3,4 @@ yfinance
 plotly
 pandas
 numpy
+git+https://github.com/bulut396/Python-Risk-Management-Library
