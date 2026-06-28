@@ -1,4 +1,4 @@
-# stock-technical-signal-analyzer
+# Stock-Technical-Signal-Analyzer
 
 This app looks at a stock's recent price history and gives you a simple BUY/SELL/HOLD signal, based on classic technical indicators.
 
